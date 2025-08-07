@@ -6,7 +6,6 @@
 #include "LittleFS.h"
 #include <TFT_eSPI.h>
 
-#include "../types/screen.cpp"
 #include "ui.cpp"
 
 typedef std::function<void(bool active)> OptionCallback;
@@ -53,8 +52,7 @@ typedef enum {
 } OptionListType;
 
 class OptionList: public PrimitiveUI {
-	private:
-		TFT_eSPI *_tft;
+	private:		
 		std::vector<Option> _options;		
 		Point _position;
 		Size _listSize;
@@ -67,16 +65,49 @@ class OptionList: public PrimitiveUI {
 		int _paddingVertical = 5;
 
 	public:
-		OptionList(TFT_eSPI *tft, Point position, Size optionsSize) : _position(position), _optionsSize(optionsSize), _tft(tft) {
+		OptionList(Point position, Size optionsSize) : PrimitiveUI(), _position(position), _optionsSize(optionsSize) {
 			_listSize.width = _paddingHorizontal * 2 + ((_optionsSize.width + 5) * _options.size() - 5);
 			_listSize.height = optionsSize.height + _paddingVertical * 2;
 			_selectedOption = 0;
-			_lastSelectedOption = -1;
-			
+			_lastSelectedOption = -1;					
+
 			_visibilityChanged = true;
 			_visible = true;
 		}
-		
+
+		void consumeKeys() override {
+			int lastOption = _selectedOption;								
+
+			switch(_listType) {
+				case HORIZONTAL:
+					if(btn_lf.consume()) {
+						_selectedOption--;
+					}
+					if(btn_rt.consume()) {
+						_selectedOption++;
+					}
+					break;
+				case VERTICAL:
+					if(btn_up.consume()) {
+						_selectedOption--;
+					}
+					if(btn_dw.consume()) {
+						_selectedOption++;
+					}
+					break;
+			}
+
+			_selectedOption = std::max(0, std::min(_selectedOption, (int)_options.size() - 1));
+			if(_selectedOption != lastOption) {
+				_hasChanged = true;
+				_visibilityChanged = true;
+			}
+
+			if(btn_rn.consume()) {
+				activeSelectedOption();
+			}
+		}
+
 		void addOptions(std::vector<Option> options) {
 			_options = options;
 			_listSize.width = _paddingHorizontal * 2 + ((_optionsSize.width + 5) * _options.size() - 5);
@@ -87,8 +118,8 @@ class OptionList: public PrimitiveUI {
 			_visibilityChanged = true;
 		}
 		
-		void setInCenterX() {
-			_position.x = (_tft->width() - _listSize.width) / 2;
+		void setInCenterX() {			
+			_position.x = (tft.width() - _listSize.width) / 2;
 			
 			_visibilityChanged = true;			
 		}
@@ -100,7 +131,7 @@ class OptionList: public PrimitiveUI {
 			int currentX = _position.x + _paddingHorizontal;
 			int yPosition = _position.y + _paddingVertical;
 			if (!_visibilityChanged) {
-				_tft->drawRoundRect(
+				tft.drawRoundRect(
 					currentX + _lastSelectedOption * (_optionsSize.height + 5),
 					yPosition,
 					_optionsSize.height,
@@ -108,7 +139,7 @@ class OptionList: public PrimitiveUI {
 					11,
 					TFT_WHITE
 				);
-				_tft->drawRoundRect(
+				tft.drawRoundRect(
 					currentX + _selectedOption * (_optionsSize.height + 5),
 					yPosition,
 					_optionsSize.height,
@@ -121,30 +152,30 @@ class OptionList: public PrimitiveUI {
 			}
 			_visibilityChanged = false; // Reset visibility changed flag after verifying
 
-			_tft->setTextColor(TFT_WHITE);
+			tft.setTextColor(TFT_WHITE);
 
-			_tft->fillRoundRect(_position.x, _position.y, _listSize.width, _listSize.height, 11, TFT_DARKGREY);
+			tft.fillRoundRect(_position.x, _position.y, _listSize.width, _listSize.height, 11, TFT_DARKGREY);
 			
 			switch(_listType) {
 				case HORIZONTAL:
 					for (size_t i = 0; i < _options.size(); ++i) {
 						if(_options[i].getFileBuffer() != nullptr) {
-							_tft->pushImage(currentX + 3, yPosition + 3, _optionsSize.width - 6, _optionsSize.height - 6, _options[i].getFileBuffer());
+							tft.pushImage(currentX + 3, yPosition + 3, _optionsSize.width - 6, _optionsSize.height - 6, _options[i].getFileBuffer());
 						} else {
-							_tft->drawString(_options[i].getLabel().c_str(), currentX + 3, yPosition + 3, 2);					
+							tft.drawString(_options[i].getLabel().c_str(), currentX + 3, yPosition + 3, 2);					
 						}
-						_tft->drawRoundRect(currentX, yPosition, _optionsSize.width, _optionsSize.height, 11, i == _selectedOption ? TFT_BLUE : TFT_WHITE);
+						tft.drawRoundRect(currentX, yPosition, _optionsSize.width, _optionsSize.height, 11, i == _selectedOption ? TFT_BLUE : TFT_WHITE);
 						currentX += _optionsSize.width + 5;
 					}					
 					break;
 				case VERTICAL:
 					for (size_t i = 0; i < _options.size(); ++i) {
 						if(_options[i].getFileBuffer() != nullptr) {
-							_tft->pushImage(currentX + 3, yPosition + 3, _optionsSize.width - 6, _optionsSize.height - 6, _options[i].getFileBuffer());
+							tft.pushImage(currentX + 3, yPosition + 3, _optionsSize.width - 6, _optionsSize.height - 6, _options[i].getFileBuffer());
 						} else {
-							_tft->drawString(_options[i].getLabel().c_str(), currentX + 3, yPosition + 3, 2);					
+							tft.drawString(_options[i].getLabel().c_str(), currentX + 3, yPosition + 3, 2);					
 						}
-						_tft->drawRoundRect(currentX, yPosition, _optionsSize.width, _optionsSize.height, 11, i == _selectedOption ? TFT_BLUE : TFT_WHITE);
+						tft.drawRoundRect(currentX, yPosition, _optionsSize.width, _optionsSize.height, 11, i == _selectedOption ? TFT_BLUE : TFT_WHITE);
 						yPosition += _optionsSize.height + 5;
 					}
 					break;

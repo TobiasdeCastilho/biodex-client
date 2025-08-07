@@ -13,12 +13,10 @@ typedef enum {
 class ScreensList: public PrimitiveUI {
 	private:
 		Screen *_currentScreen;
-	  Screens _currentScreenType;
-		TFT_eSPI *_tft;		
+	  Screens _currentScreenType;		
 	
 	public:
-		ScreensList(TFT_eSPI *tft) {
-			_tft = tft;
+		ScreensList(): PrimitiveUI() {			
 			_visibilityChanged = true;
 			_visible = true;
 		}
@@ -36,11 +34,11 @@ class ScreensList: public PrimitiveUI {
 			switch(screenType) {
 				case CAMERA_SCREEN:
 					Serial.println("Setting current screen to CAMERA_SCREEN");
-					_currentScreen = new CameraScreen(_tft);		
+					_currentScreen = new CameraScreen();		
 					break;
 				case WIFI_SETTINGS_SCREEN:
 					Serial.println("Setting current screen to WIFI_SETTINGS_SCREEN");
-					_currentScreen = new WifiSettingsScreen(_tft);
+					_currentScreen = new WifiSettingsScreen();
 					break;
 				default:
 					break;
@@ -48,8 +46,19 @@ class ScreensList: public PrimitiveUI {
 		}
 
 		void render() {
+			if(_visibilityChanged){				
+				tft.fillScreen(TFT_BLACK);
+				_visibilityChanged = false;
+			}
+
 			if (_currentScreen) {
 				_currentScreen->render();
-			}			
+			}
+		}
+
+		void consumeKeys() {
+			if (_currentScreen) {
+				_currentScreen->consumeKeys();
+			}
 		}
 };

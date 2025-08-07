@@ -2,15 +2,12 @@
 
 #include <TFT_eSPI.h>
 
-class Screen {
-	protected:
-		TFT_eSPI *_tft;
+#include "../classes/ui.cpp"
 
+class Screen: public PrimitiveUI {
 	public:
-		Screen(TFT_eSPI *tft) {
-			_tft = tft;
+		Screen(): PrimitiveUI() {			
 		}
-		virtual void render() = 0;
 };
 
 #define SCREEN

@@ -3,7 +3,7 @@
 #include <WiFi.h>
 
 #include "../screen.cpp"
-#include "../../types/screen.cpp"
+#include "../../types/ui.cpp"
 #include "../../classes/options.cpp"
 
 class WifiSettingsScreen: public Screen {
@@ -11,15 +11,15 @@ class WifiSettingsScreen: public Screen {
 		OptionList * _options;
 
 	public:
-    WifiSettingsScreen(TFT_eSPI *tft): Screen(tft) {		
-			_options = new OptionList(_tft, {0, 0}, {460, 30});
+    WifiSettingsScreen(): Screen() {		
+			_options = new OptionList({0, 0}, {460, 30});
 			_options->setListType(VERTICAL);
 
 			int networksAmount = WiFi.scanNetworks();
-
-			Serial.println("Networks found: " + String(networksAmount));
-
+			
+			Serial.println("Networks found: ");
 			for (int i = 0; i < networksAmount; i++) {
+				Serial.println(" - " + WiFi.SSID(i) + " (" + String(WiFi.RSSI(i)) + "dBm)");
 				_options->addOptions({
 					Option([i](bool active) {
 						if(active) {
@@ -29,12 +29,15 @@ class WifiSettingsScreen: public Screen {
 						}
 					}, "", WiFi.SSID(i).c_str())
 				});
-			}
-
+			}			
 		}
 
-    void render(){
+    void render(){			
 			_options->render();
+		}
+
+		void consumeKeys() {
+			_options->consumeKeys();
 		}
 };
 

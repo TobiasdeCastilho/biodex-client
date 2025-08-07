@@ -1,4 +1,4 @@
-#ifndef SCREEN_TYPES
+#ifndef TYPE_UI
 
 typedef struct {
 	int x;
@@ -10,6 +10,11 @@ typedef struct {
 	int height;
 } Size;
 
-#define SCREEN_TYPES
+typedef struct {
+	Point point;
+	Size size;	
+} Definition;
+
+#define TYPE_UI
 
 #endif

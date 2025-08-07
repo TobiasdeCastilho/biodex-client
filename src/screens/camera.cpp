@@ -6,11 +6,15 @@ class CameraScreen: public Screen {
 		// Camera _camera;
 
 	public:
-		CameraScreen(TFT_eSPI *tft): Screen(tft) {
+		CameraScreen(): Screen() {
 
 		}
 
 		void render() override {											
-			// _camera.render(0, 0, *_tft);
+			// _camera.render(0, 0, *tft);
+		}
+
+		void consumeKeys() override {
+			// Handle key inputs specific to the camera screen here
 		}
 }; 

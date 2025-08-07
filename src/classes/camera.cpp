@@ -2,7 +2,8 @@
 
 #include <Arduino.h>
 #include "esp_camera.h"
-#include <TFT_eSPI.h>
+
+#include "ui.cpp"
 
 #define PWDN_GPIO_NUM     -1
 #define RESET_GPIO_NUM    -1
@@ -26,11 +27,19 @@
 
 static camera_config_t _config;
 
-class Camera {
+class Camera: public PrimitiveUI {
 	private:    
-		camera_fb_t *_fb = NULL;					
+		camera_fb_t *_fb = NULL;		
 
 	public:
+		Camera(Definition definition): PrimitiveUI() {			
+      esp_err_t err;
+			_definition = definition;
+
+      while((err = esp_camera_init(&_config)) != ESP_OK) {       
+        delay(1000);
+      }
+		}		
 		static void config() {
 			_config.ledc_channel = LEDC_CHANNEL_0;
       _config.ledc_timer = LEDC_TIMER_0;
@@ -61,22 +70,14 @@ class Camera {
       _config.fb_location = CAMERA_FB_IN_PSRAM; 
       _config.grab_mode = CAMERA_GRAB_LATEST;
 
-		}	
-			
-		Camera(){			
-      esp_err_t err;
+		}			
 
-      while((err = esp_camera_init(&_config)) != ESP_OK) {       
-        delay(1000);
-      }
-		}
-
-		void render(int posX, int posY, TFT_eSPI tft) {			
+		void render() override {
 			_fb = esp_camera_fb_get();
 			if(!_fb) return;
 
-			tft.pushImage(posX, posY, _fb->width, _fb->height, _fb->buf);			
-		}		
+			tft.pushImage(_definition.point.x, _definition.point.y, _fb->width, _fb->height, _fb->buf);
+		}
 };
 
 #define CAMERA

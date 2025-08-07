@@ -1,6 +1,15 @@
 #include <Arduino.h>
 
-#include <TFT_eSPI.h>
+#include "globals/tft.h"
+#include "globals/buttons.h"
+
+Button btn_up(19, "up");
+Button btn_lf(20, "left");
+Button btn_dw(21, "down");
+Button btn_rt(47, "right");
+Button btn_rn(48, "return");
+Button btn_sl(45, "select");
+
 // Classes
 #include "classes/button.cpp"
 #include "classes/request.cpp"
@@ -9,26 +18,16 @@
 #include "classes/screenlist.cpp"
 #include "classes/keyboard.cpp"
 
-TFT_eSPI tft = TFT_eSPI();
 Comunication comunication;
+RenderList renderList;
 
-Button
-	btn_up(19, "up"),
-	btn_lf(20, "left"),
-	btn_dw(21, "down"),
-	btn_rt(47, "right"),
-	btn_rn(48, "return"),
-	btn_sl(45, "select");
-Keyboard keyboard(&tft, &btn_up, &btn_dw, &btn_lf, &btn_rt, &btn_rn, &btn_sl);
-
-OptionList optionList(
-	&tft, 
+TFT_eSPI tft = TFT_eSPI();
+Keyboard keyboard;
+OptionList optionList(	
 	{0, 270},	
 	{30, 30}
 );
-ScreensList screenList(&tft);
-
-RenderList renderList;
+ScreensList screenList;
 
 void buttonsRead(void *param) {
 	while (true) {
@@ -61,11 +60,20 @@ void renderUI(void *param) {
 void setup(){	
 	Serial.begin(115200);	
 
+	Serial.println("Starting setup...");
 	if (!LittleFS.begin()) {
     Serial.println("Failed to mount file system");
     return;
   }
 
+	Serial.println("Initializing TFT display...");
+	tft.init();
+	tft.setRotation(3);
+	tft.invertDisplay(true);
+	tft.fillScreen(TFT_BLACK);
+	Serial.println("TFT display initialized");
+
+	Serial.println("Creating options list...");
 	optionList.addOptions({
 		Option([](bool active) { Serial.println("Option 1 selected"); }, "camera.bin", ""),
 		Option([](bool active) { Serial.println("Option 2 selected"); }, "definicoes.bin", ""),
@@ -76,17 +84,16 @@ void setup(){
 		Option([](bool active) { keyboard.show(); }, "teclado.bin", "")
 	});
 
-	tft.init();
-	tft.setRotation(3);
-	tft.invertDisplay(true);
-	tft.fillScreen(TFT_BLACK);
+	optionList.setInCenterX();	
+	Serial.println("Options list created");
 
-	optionList.setInCenterX();
-
+	Serial.println("Setting up render list...");
 	renderList.add(&keyboard, 0);
-	renderList.add(&screenList, 1);
 	renderList.add(&optionList, 1);
+	renderList.add(&screenList, 2);
+	Serial.println("Render list setup complete");	
 
+	Serial.println("Setup complete, starting tasks...");
 	xTaskCreatePinnedToCore(
 	  buttonsRead, 
 	  "ButtonsRead", 
@@ -94,8 +101,18 @@ void setup(){
 	  NULL,        
 	  1,           
 	  NULL,        
-	  0              
+	  1             
   );
+
+	// xTaskCreatePinnedToCore(
+	//   consumeKeys, 
+	//   "ConsumeKeys", 
+	//   2048,        
+	//   NULL,        
+	//   1,           
+	//   NULL,        
+	//   0              
+	// );
 
 	xTaskCreatePinnedToCore(
 	  renderUI,
@@ -105,21 +122,9 @@ void setup(){
 	  1,          
 	  NULL,       
 	  0
-  );
+  );	
 }
 
 void loop(){				
-	if(keyboard.isVisible()) {
-		keyboard.consumeKeys();
-	} else if(optionList.isVisible()){			
-		if(btn_sl.consume())
-			optionList.activeSelectedOption();	
-		if(btn_lf.consume())
-			optionList.decreaseSelectedOption();		
-		if(btn_rt.consume())			
-			optionList.increaseSelectedOption();
-		// if(btn_rn.clicked()) {
-		// 	optionList.deactivate();
-		// }
-	}
+	renderList.consumeKeys();
 }
