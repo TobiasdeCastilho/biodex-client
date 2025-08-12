@@ -62,7 +62,7 @@ class OptionList: public PrimitiveUI {
 		int _selectedOption, _lastSelectedOption = -1;
 
 		int _paddingHorizontal = 5;
-		int _paddingVertical = 5;
+		int _paddingVertical = 5;		
 
 	public:
 		OptionList(Point position, Size optionsSize) : PrimitiveUI(), _position(position), _optionsSize(optionsSize) {
@@ -81,40 +81,49 @@ class OptionList: public PrimitiveUI {
 			switch(_listType) {
 				case HORIZONTAL:
 					if(btn_lf.consume()) {
-						_selectedOption--;
+						decreaseSelectedOption();						
 					}
 					if(btn_rt.consume()) {
-						_selectedOption++;
+						increaseSelectedOption();
 					}
 					break;
 				case VERTICAL:
 					if(btn_up.consume()) {
-						_selectedOption--;
+						decreaseSelectedOption();
 					}
 					if(btn_dw.consume()) {
-						_selectedOption++;
+						increaseSelectedOption();
 					}
 					break;
 			}
 
 			_selectedOption = std::max(0, std::min(_selectedOption, (int)_options.size() - 1));
-			if(_selectedOption != lastOption) {
-				_hasChanged = true;
-				_visibilityChanged = true;
-			}
+			if(_selectedOption != lastOption)
+				_hasChanged = true;						
 
-			if(btn_rn.consume()) {
+			if(btn_sl.consume()) {
 				activeSelectedOption();
 			}
 		}
 
 		void addOptions(std::vector<Option> options) {
-			_options = options;
-			_listSize.width = _paddingHorizontal * 2 + ((_optionsSize.width + 5) * _options.size() - 5);
-			_listSize.height = _optionsSize.height + _paddingVertical * 2;
-			_selectedOption = 0;
-			_lastSelectedOption = -1;
+			for (const auto &option : options) {
+				_options.push_back(option);
+			}
 			
+			switch(_listType) {
+				case HORIZONTAL:\
+					_listSize.width = _paddingHorizontal * 2 + ((_optionsSize.width + 5) * _options.size() - 5);
+					_listSize.height = _optionsSize.height + _paddingVertical * 2;
+					break;
+				case VERTICAL:
+					_listSize.width = _optionsSize.width + _paddingHorizontal * 2;
+					_listSize.height = _paddingVertical * 2 + ((_optionsSize.height + 5) * _options.size() - 5);
+					break;
+			}			
+			_selectedOption = 0;
+			_lastSelectedOption = 0;
+
 			_visibilityChanged = true;
 		}
 		
@@ -122,65 +131,7 @@ class OptionList: public PrimitiveUI {
 			_position.x = (tft.width() - _listSize.width) / 2;
 			
 			_visibilityChanged = true;			
-		}
-
-		void render() {
-			if (!_hasChanged && !_visibilityChanged) return;
-			_hasChanged = false;						
-
-			int currentX = _position.x + _paddingHorizontal;
-			int yPosition = _position.y + _paddingVertical;
-			if (!_visibilityChanged) {
-				tft.drawRoundRect(
-					currentX + _lastSelectedOption * (_optionsSize.height + 5),
-					yPosition,
-					_optionsSize.height,
-					_optionsSize.width,
-					11,
-					TFT_WHITE
-				);
-				tft.drawRoundRect(
-					currentX + _selectedOption * (_optionsSize.height + 5),
-					yPosition,
-					_optionsSize.height,
-					_optionsSize.width,
-					11,
-					TFT_BLUE
-				);
-
-				return;
-			}
-			_visibilityChanged = false; // Reset visibility changed flag after verifying
-
-			tft.setTextColor(TFT_WHITE);
-
-			tft.fillRoundRect(_position.x, _position.y, _listSize.width, _listSize.height, 11, TFT_DARKGREY);
-			
-			switch(_listType) {
-				case HORIZONTAL:
-					for (size_t i = 0; i < _options.size(); ++i) {
-						if(_options[i].getFileBuffer() != nullptr) {
-							tft.pushImage(currentX + 3, yPosition + 3, _optionsSize.width - 6, _optionsSize.height - 6, _options[i].getFileBuffer());
-						} else {
-							tft.drawString(_options[i].getLabel().c_str(), currentX + 3, yPosition + 3, 2);					
-						}
-						tft.drawRoundRect(currentX, yPosition, _optionsSize.width, _optionsSize.height, 11, i == _selectedOption ? TFT_BLUE : TFT_WHITE);
-						currentX += _optionsSize.width + 5;
-					}					
-					break;
-				case VERTICAL:
-					for (size_t i = 0; i < _options.size(); ++i) {
-						if(_options[i].getFileBuffer() != nullptr) {
-							tft.pushImage(currentX + 3, yPosition + 3, _optionsSize.width - 6, _optionsSize.height - 6, _options[i].getFileBuffer());
-						} else {
-							tft.drawString(_options[i].getLabel().c_str(), currentX + 3, yPosition + 3, 2);					
-						}
-						tft.drawRoundRect(currentX, yPosition, _optionsSize.width, _optionsSize.height, 11, i == _selectedOption ? TFT_BLUE : TFT_WHITE);
-						yPosition += _optionsSize.height + 5;
-					}
-					break;
-			}						
-		}
+		}		
 		
 		void activeSelectedOption() {
 			if (_selectedOption < 0 || _selectedOption >= _options.size()) return;			
@@ -196,7 +147,7 @@ class OptionList: public PrimitiveUI {
 				return;
 			}		
 
-			_selectedOption++;						
+			_selectedOption++;
 		}
 
 		void decreaseSelectedOption() {
@@ -215,6 +166,72 @@ class OptionList: public PrimitiveUI {
 			_listType = type;
 			_hasChanged = true;
 			_visibilityChanged = true;
+
+			switch(_listType) {
+				case HORIZONTAL:
+					_listSize.width = _paddingHorizontal * 2 + ((_optionsSize.width + 5) * _options.size() - 5);
+					_listSize.height = _optionsSize.height + _paddingVertical * 2;
+					break;
+				case VERTICAL:
+					_listSize.width = _optionsSize.width + _paddingHorizontal * 2;
+					_listSize.height = _paddingVertical * 2 + ((_optionsSize.height + 5) * _options.size() - 5);
+					break;
+			}
+		}
+
+		void render() override {
+			if (!_hasChanged && !_visibilityChanged) return;
+			_hasChanged = false;
+
+			int currentX = _position.x + _paddingHorizontal;
+			int currentY = _position.y + _paddingVertical;			
+
+			if (!_visibilityChanged) {
+				Serial.printf("X: %d, Y: %d\n", currentX, currentY);
+				Serial.printf("X: %d, Y: %d\n", currentX + (_listType == HORIZONTAL ? _selectedOption * (_optionsSize.width + 5) : 0), currentY + (_listType == VERTICAL ? _selectedOption * (_optionsSize.height + 5) : 0));
+				Serial.printf("X: %d, Y: %d\n", currentX + (_listType == HORIZONTAL ? _lastSelectedOption * (_optionsSize.width + 5) : 0), currentY + (_listType == VERTICAL ? _lastSelectedOption * (_optionsSize.height + 5) : 0));
+
+				tft.drawRoundRect(
+					currentX + (_listType == HORIZONTAL ? _selectedOption * (_optionsSize.width + 5) : 0),
+					currentY + (_listType == VERTICAL ? _selectedOption * (_optionsSize.height + 5) : 0),
+					_optionsSize.height,
+					_optionsSize.width,
+					11,
+					TFT_BLUE
+				);
+				tft.drawRoundRect(
+					currentX + (_listType == HORIZONTAL ? _lastSelectedOption * (_optionsSize.width + 5) : 0),
+					currentY + (_listType == VERTICAL ? _lastSelectedOption * (_optionsSize.height + 5) : 0),
+					_optionsSize.height,
+					_optionsSize.width,
+					11,
+					TFT_WHITE
+				);
+
+				return;
+			}
+			_visibilityChanged = false; // Reset visibility changed flag after verifying
+
+			tft.setTextColor(TFT_WHITE);
+			tft.setTextSize(2);
+		
+			tft.fillRoundRect(_position.x, _position.y, _listSize.width, _listSize.height, 11, TFT_DARKGREY);		
+			for (size_t i = 0; i < _options.size(); ++i) {
+				if(_options[i].getFileBuffer() != nullptr)
+					tft.pushImage(currentX + 3, currentY + 3, _optionsSize.width - 6, _optionsSize.height - 6, _options[i].getFileBuffer());
+				else 
+					tft.drawString(_options[i].getLabel().c_str(), currentX + 3, currentY + 3, 2);									
+				tft.drawRoundRect(currentX, currentY, _optionsSize.width, _optionsSize.height, 11, i == _selectedOption ? TFT_BLUE : TFT_WHITE);
+				
+				switch(_listType) {
+					case HORIZONTAL:
+						currentX += _optionsSize.width + 5;
+						break;
+					case VERTICAL:
+						currentY += _optionsSize.height + 5;
+						break;
+				}				
+			}					
 		}
 };
 

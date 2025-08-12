@@ -1,20 +1,20 @@
-// #include "../classes/camera.cpp"
+#include "../classes/camera.cpp"
 #include "screen.cpp"
 
 class CameraScreen: public Screen {
 	private:		
-		// Camera _camera;
+		Camera *_camera;
 
 	public:
 		CameraScreen(): Screen() {
-
+			_camera = new Camera({{0,0}, {430,320}});
 		}
 
-		void render() override {											
-			// _camera.render(0, 0, *tft);
+		void render() {											
+			_camera->render();
 		}
 
 		void consumeKeys() override {
-			// Handle key inputs specific to the camera screen here
+			_camera->consumeKeys();
 		}
 }; 

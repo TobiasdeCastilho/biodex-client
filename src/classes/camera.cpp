@@ -67,16 +67,20 @@ class Camera: public PrimitiveUI {
       _config.frame_size = FRAMESIZE_240X240; 
       _config.jpeg_quality = 24; 
       _config.fb_count = 1;
-      _config.fb_location = CAMERA_FB_IN_PSRAM; 
+      _config.fb_location = CAMERA_FB_IN_DRAM; // Use DRAM for frame buffer
       _config.grab_mode = CAMERA_GRAB_LATEST;
 
 		}			
 
-		void render() override {
+		void render() {
 			_fb = esp_camera_fb_get();
 			if(!_fb) return;
 
 			tft.pushImage(_definition.point.x, _definition.point.y, _fb->width, _fb->height, _fb->buf);
+		}
+
+		void consumeKeys() override {
+			// Handle key inputs specific to the camera screen here
 		}
 };
 

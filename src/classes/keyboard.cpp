@@ -4,11 +4,13 @@
 
 #define KEYSIZE 48
 
+typedef std::function<void(bool confirmed, std::string text, int textLength)> KeyboardUserCallback;
 class Keyboard : public PrimitiveUI {
 	private:		
 		int _keyX = 0, _keyY = 0, _lastKeyX = 0, _lastKeyY = 0; // Current key position
 		char _input[64] = {0}; // Buffer for input text
-		int _inputLength = 0;		
+		int _inputLength = 0;
+		KeyboardUserCallback _callback;
 
 		char keyMap[4][10] = {
 			{'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'},
@@ -54,7 +56,9 @@ class Keyboard : public PrimitiveUI {
 		if(!_hasChanged && !_visibilityChanged) return;				
 		_hasChanged = false;		
 
-		if(_visibilityChanged) tft.fillScreen(TFT_BLACK);
+		if(_visibilityChanged) {
+			tft.fillScreen(TFT_BLACK);
+		}
 		if(!_visible) {
 			_visibilityChanged = false;
 			return;
@@ -132,8 +136,8 @@ class Keyboard : public PrimitiveUI {
 		if (btn_rn.consume()) {
 			_visible = false;			
 			_visibilityChanged = true;
-
-			memset(_input, 0, sizeof(_input));
+			
+			callback(false);			
 			_inputLength = 0;
 		}			
 
@@ -160,7 +164,7 @@ class Keyboard : public PrimitiveUI {
 							return;
 						}						
 					case 4: // Enter
-						
+						callback(true);
 						break;					
 				}
 			} else {
@@ -176,5 +180,24 @@ class Keyboard : public PrimitiveUI {
 			_input[_inputLength] = key;
 			_inputLength++;
 		}		
-	}	
+	}
+
+	void use(KeyboardUserCallback callback) {
+		_callback = callback;
+		show();
+	}
+
+	void callback(bool confirmed) {
+		if(_callback) {
+			_input[_inputLength] = '\0'; // Null-terminate the string
+			_callback(confirmed, std::string(_input), _inputLength);
+		}
+
+		_callback = nullptr; // Clear callback after use
+
+		memset(_input, 0, sizeof(_input));
+		_inputLength = 0; // Reset input length
+
+		hide();
+	}
 };

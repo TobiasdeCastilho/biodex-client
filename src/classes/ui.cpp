@@ -9,13 +9,16 @@
 
 class PrimitiveUI {
 	protected:
-		bool _visible, _hasChanged,_visibilityChanged;		
-		Definition _definition;
+		bool _visible, _hasChanged, _visibilityChanged;		
+		Definition _definition;					
 
 	public:		
-		PrimitiveUI(): _visible(false), _hasChanged(true), _visibilityChanged(true) {}		
+		PrimitiveUI(): _visible(false), _hasChanged(true), _visibilityChanged(true) {}				
 		virtual void render() = 0;
-		virtual void consumeKeys() = 0;
+
+		virtual void consumeKeys() {
+			return;
+		};	
 
 		void hide() {
 			_visible = false;
@@ -26,7 +29,7 @@ class PrimitiveUI {
 		void show() {
 			_visible = true;
 			_hasChanged = true;
-			_visibilityChanged = true;
+			_visibilityChanged = true;			
 		}
 
 		bool isVisible() {
@@ -38,40 +41,42 @@ class PrimitiveUI {
 		}
 
 		void reset() {
-			if(!_visible) return;
+			if(!_visible) return;			
 			_hasChanged = true;
 			_visibilityChanged = true;
 		}
 };
 
-typedef struct {
-	PrimitiveUI *ui;
-	int priority;
-} RenderItem;
-class RenderList {
+class ControllerUI {
 	private: 
-		std::vector<RenderItem> _items;		
+		std::vector<PrimitiveUI*> _items;		
 	public:
-		void add(PrimitiveUI *item, int priority) {
-			_items.push_back({item, priority});
+		void add(PrimitiveUI* item) {
+			_items.push_back(item);
 		}
 
 		void render() {
-			int lastPriority = -1;
-			for (auto &item : _items) {				
-				if(lastPriority != -1 && item.priority > lastPriority) return; // Stop rendering if priority is lower than last rendered item								
-				if (item.ui->isVisible() || item.ui->visibilityChanged()) {
+			bool shouldReset = false;
 
-					if(item.ui->isVisible()) lastPriority = item.priority;
-					item.ui->render();
+			for(int i = 0; i < _items.size(); i++) {
+				if (_items[i]->isVisible() || _items[i]->visibilityChanged()) {
+					_items[i]->render();					
+					if(_items[i]->isVisible()){
+						if(shouldReset)
+							_items[i]->reset();
+						return;
+					}
+					
+					if(_items[i]->visibilityChanged())
+						shouldReset = true;					
 				}
 			}
 		}
 
 		void consumeKeys() {
-			for (auto &item : _items) {			
-				if (item.ui->isVisible()) {
-					item.ui->consumeKeys();
+			for (auto *item : _items) {			
+				if (item->isVisible()) {
+					item->consumeKeys();
 					return; 
 				}
 			}

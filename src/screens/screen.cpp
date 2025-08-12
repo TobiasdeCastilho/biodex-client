@@ -8,6 +8,11 @@ class Screen: public PrimitiveUI {
 	public:
 		Screen(): PrimitiveUI() {			
 		}
+
+		virtual void load() {
+			show();
+			return;
+		}
 };
 
 #define SCREEN

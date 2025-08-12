@@ -2,13 +2,8 @@
 
 #include "globals/tft.h"
 #include "globals/buttons.h"
-
-Button btn_up(19, "up");
-Button btn_lf(20, "left");
-Button btn_dw(21, "down");
-Button btn_rt(47, "right");
-Button btn_rn(48, "return");
-Button btn_sl(45, "select");
+#include "globals/keyboard.h"
+#include "globals/loaders.h"
 
 // Classes
 #include "classes/button.cpp"
@@ -16,13 +11,10 @@ Button btn_sl(45, "select");
 #include "classes/camera.cpp"
 #include "classes/options.cpp"
 #include "classes/screenlist.cpp"
-#include "classes/keyboard.cpp"
 
 Comunication comunication;
-RenderList renderList;
+ControllerUI renderList;
 
-TFT_eSPI tft = TFT_eSPI();
-Keyboard keyboard;
 OptionList optionList(	
 	{0, 270},	
 	{30, 30}
@@ -42,7 +34,14 @@ void buttonsRead(void *param) {
 	}
 }
 
-void renderUI(void *param) {
+// void consumeKeys(void *param) {
+// 	while (true) {
+// 		renderList.consumeKeys();
+// 		vTaskDelay(10 / portTICK_PERIOD_MS); // Delay to avoid busy-waiting
+// 	}
+// }
+
+void render(void *param) {
 	tft.fillScreen(TFT_BLACK);
 
 	while(true) {
@@ -50,6 +49,8 @@ void renderUI(void *param) {
 			optionList.reset();
 			screenList.reset();
 		}
+		if(screenList.visibilityChanged())
+			optionList.reset();		
 
 		renderList.render();
 
@@ -66,6 +67,8 @@ void setup(){
     return;
   }
 
+	Camera::config();
+
 	Serial.println("Initializing TFT display...");
 	tft.init();
 	tft.setRotation(3);
@@ -75,11 +78,10 @@ void setup(){
 
 	Serial.println("Creating options list...");
 	optionList.addOptions({
-		Option([](bool active) { Serial.println("Option 1 selected"); }, "camera.bin", ""),
+		Option([](bool active) { screenList.setCurrentScreen(CAMERA_SCREEN); }, "camera.bin", ""),
 		Option([](bool active) { Serial.println("Option 2 selected"); }, "definicoes.bin", ""),
 		Option([](bool active) { 
-			screenList.setCurrentScreen(WIFI_SETTINGS_SCREEN); 
-			optionList.hide();	
+			screenList.setCurrentScreen(WIFI_SETTINGS_SCREEN); 			
 		}, "lista.bin", ""),
 		Option([](bool active) { keyboard.show(); }, "teclado.bin", "")
 	});
@@ -88,9 +90,11 @@ void setup(){
 	Serial.println("Options list created");
 
 	Serial.println("Setting up render list...");
-	renderList.add(&keyboard, 0);
-	renderList.add(&optionList, 1);
-	renderList.add(&screenList, 2);
+	renderList.add(&circleLoad);
+	renderList.add(&loaderProgress);
+	renderList.add(&keyboard);
+	renderList.add(&screenList);
+	renderList.add(&optionList);
 	Serial.println("Render list setup complete");	
 
 	Serial.println("Setup complete, starting tasks...");
@@ -101,7 +105,7 @@ void setup(){
 	  NULL,        
 	  1,           
 	  NULL,        
-	  1             
+	  0
   );
 
 	// xTaskCreatePinnedToCore(
@@ -115,16 +119,16 @@ void setup(){
 	// );
 
 	xTaskCreatePinnedToCore(
-	  renderUI,
-	  "RenderUI",
-	  2048,       
-	  NULL,       
-	  1,          
-	  NULL,       
-	  0
+	  render,
+	  "render",
+	  2048,
+	  NULL,
+	  1,
+	  NULL,
+	  1
   );	
 }
 
-void loop(){				
+void loop(){					
 	renderList.consumeKeys();
 }
