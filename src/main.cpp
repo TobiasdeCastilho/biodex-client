@@ -65,9 +65,7 @@ void setup(){
 	if (!LittleFS.begin()) {
     Serial.println("Failed to mount file system");
     return;
-  }
-
-	Camera::config();
+  }	
 
 	Serial.println("Initializing TFT display...");
 	tft.init();
@@ -103,7 +101,7 @@ void setup(){
 	  "ButtonsRead", 
 	  2048,        
 	  NULL,        
-	  1,           
+	  2,           
 	  NULL,        
 	  0
   );
