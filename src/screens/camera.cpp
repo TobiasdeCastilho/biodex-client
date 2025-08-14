@@ -9,7 +9,7 @@ class CameraScreen: public Screen {
 
 	public:
 		CameraScreen(): Screen() {
-			_camera = new Camera({{0,0}, {430,320}});
+			_camera = new Camera();
 		}
 		~CameraScreen() {
 			delete _camera;

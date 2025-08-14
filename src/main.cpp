@@ -34,13 +34,6 @@ void buttonsRead(void *param) {
 	}
 }
 
-// void consumeKeys(void *param) {
-// 	while (true) {
-// 		renderList.consumeKeys();
-// 		vTaskDelay(10 / portTICK_PERIOD_MS); // Delay to avoid busy-waiting
-// 	}
-// }
-
 void render(void *param) {
 	tft.fillScreen(TFT_BLACK);
 

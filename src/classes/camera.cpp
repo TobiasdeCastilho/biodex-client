@@ -30,12 +30,10 @@ class Camera: public PrimitiveUI {
 		camera_config_t _config;
 	
 	public:
-		Camera(Definition definition): PrimitiveUI() {			
-      esp_err_t err;
-			_definition = definition;
-
+		Camera(): PrimitiveUI() {			
 			config();
-
+			
+      esp_err_t err;			
       while((err = esp_camera_init(&_config)) != ESP_OK) {       
         delay(1000);
       }			
