@@ -7,18 +7,18 @@
 
 #include "../types/ui.cpp"
 
-class PrimitiveUI {
+class UIComponent {
 	protected:
-		bool _visible, _hasChanged, _visibilityChanged;		
-		Definition _definition;					
+		bool _visible, _hasChanged, _visibilityChanged;
+		Definition _definition;
 
-	public:		
-		PrimitiveUI(): _visible(false), _hasChanged(true), _visibilityChanged(true) {}				
+	public:
+		UIComponent(): _visible(false), _hasChanged(true), _visibilityChanged(true) {}
 		virtual void render() = 0;
 
 		virtual void consumeKeys() {
 			return;
-		};	
+		};
 
 		void hide() {
 			_visible = false;
@@ -29,29 +29,29 @@ class PrimitiveUI {
 		void show() {
 			_visible = true;
 			_hasChanged = true;
-			_visibilityChanged = true;			
+			_visibilityChanged = true;
 		}
 
 		bool isVisible() {
 			return _visible;
 		}
 
-		bool visibilityChanged() {			
+		bool visibilityChanged() {
 			return _visibilityChanged;
 		}
 
 		void reset() {
-			if(!_visible) return;			
+			if(!_visible) return;
 			_hasChanged = true;
 			_visibilityChanged = true;
 		}
 };
 
-class ControllerUI {
-	private: 
-		std::vector<PrimitiveUI*> _items;		
+class UIController {
+	private:
+		std::vector<UIComponent*> _items;
 	public:
-		void add(PrimitiveUI* item) {
+		void add(UIComponent* item) {
 			_items.push_back(item);
 		}
 
@@ -60,24 +60,24 @@ class ControllerUI {
 
 			for(int i = 0; i < _items.size(); i++) {
 				if (_items[i]->isVisible() || _items[i]->visibilityChanged()) {
-					_items[i]->render();					
+					_items[i]->render();
 					if(_items[i]->isVisible()){
 						if(shouldReset)
 							_items[i]->reset();
 						return;
 					}
-					
+
 					if(_items[i]->visibilityChanged())
-						shouldReset = true;					
+						shouldReset = true;
 				}
 			}
 		}
 
 		void consumeKeys() {
-			for (auto *item : _items) {			
+			for (auto *item : _items) {
 				if (item->isVisible()) {
 					item->consumeKeys();
-					return; 
+					return;
 				}
 			}
 		}

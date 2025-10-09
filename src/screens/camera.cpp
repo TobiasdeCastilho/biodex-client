@@ -21,7 +21,7 @@ class CameraScreen: public Screen {
 
 		void consumeKeys() override {
 			if(btn_rn.consume()){
-				hide();				
+				hide();
 				Serial.println("CameraScreen: Hide called");
 			}
 			

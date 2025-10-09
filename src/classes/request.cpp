@@ -4,8 +4,10 @@
 #include <iomanip>
 #include <sstream>
 
+#include "../globals/data.h"
+
 typedef enum {
-    CONNECTED,	    
+    CONNECTED,
     CONNECTING,
     RETRYING,
     FAILED
@@ -13,62 +15,108 @@ typedef enum {
 typedef std::function<void(WifiState)> WifiStateCallback;
 
 typedef struct {
-	std::string id;
+  std::string user;
+  std::string password;
+} InitializeRequest;
+typedef struct {
+  std::string id;
+} InitializeResponse;
+
+typedef struct {
 	double latitude;
 	double longitude;
 	std::string imageData;
 } IdentifyRequest;
 typedef struct {
+  std::string animalId;
 	std::string name;
-	std::string description;	
+	std::string description;
+	const char* audio;
 } IdentifyResponse;
 
+typedef struct {
+  int page;
+} ListRequest;
+typedef struct {
+  std::string animalId;
+  std::string nome;
+} ListItem;
+typedef struct {
+  int page;
+  int amount;
+  ListItem* items;
+} ListResponse;
+
+typedef struct {
+  std::string animalId;
+} SearchRequest;
+typedef struct {
+  std::string animalId;
+  std::string name;
+  std::string description;
+  int amount;
+} SearchResponse;
+
+typedef struct {
+  std::string animalId;
+  int image;
+} ImageSearchRequest;
+typedef struct {
+  char* image;
+} ImageSeatchResponse;
+
 class Comunication {
+  private:
+    std::string requestData, responseData;
 
-	public:
+    std::string getFromResponse(int size){
+      if(!size) return responseData;
+
+      std::string result = responseData.substr(0,size - 1);
+      responseData = responseData.substr(size);
+      return result;
+    };
+
+    std::string completeData(std::string data, int size) {
+      std::string result = data;
+      for(int i = result.length(); i < size; i++)
+        result += ' ';
+      return result;
+    }
+
+    void sendRequest() {
+      WiFiClient client;
+			while (!client.connect("server", 80)) delay(200);
+			client.print(requestData.c_str());
+			responseData = client.readStringUntil('\0').c_str();
+    }
+
+  public:
 		Comunication() {}
-		~Comunication() {
-			WiFi.disconnect(true);
-			WiFi.persistent(false);
-		}	
+		~Comunication() {}
 
-		void connectWiFi(std::string ssid, std::string password, WifiStateCallback callback) {
-	    if(WiFi.status() == WL_CONNECTED) {
-	      callback(CONNECTED);
-	      return;
-	    }
-			
-			callback(CONNECTING);
-	    WiFi.begin(ssid.c_str(), password.c_str());
+		void requestInitialize(const InitializeRequest& request) {
+			requestData =
+			  "ini" +
+				completeData(request.user, 30),
+				completeData(request.password, 30);
 
-	    int tryLimit = 10;
-	    while (WiFi.status() != WL_CONNECTED && tryLimit > 0) {				
-	      callback(CONNECTING);
-	      delay(1000);
-	      tryLimit--;
-	    }
+			sendRequest();
 
-			switch (WiFi.status()) {
-	      case WL_CONNECTED:
-	        callback(CONNECTED);
-	        break;	        
-	      default:
-	        callback(FAILED);
-	        break;
-	    }
+			data.setUserId(getFromResponse(0));
 		}
-		
+
 		IdentifyResponse requestIdentify(const IdentifyRequest& request) {
 			IdentifyResponse response;
 
 			std::ostringstream requestLatitude;
-			requestLatitude << std::showpos         
+			requestLatitude << std::showpos
 				<< std::fixed
-				<< std::setprecision(6) 
-				<< std::setw(10)       
-				<< std::setfill('0') 
+				<< std::setprecision(6)
+				<< std::setw(10)
+				<< std::setfill('0')
 				<< request.latitude;
-			
+
 			std::ostringstream requestLongitude;
 			requestLongitude << std::showpos
 				<< std::fixed
@@ -76,27 +124,19 @@ class Comunication {
 				<< std::setw(10)
 				<< std::setfill('0')
 				<< request.longitude;
-			
-			if (request.id.length() != 36) {		
-				response.name = "Erro";
-				response.description = "ID inválido";
-				return response;
-			}
 
-			std::string requestData = 
-				"idt" +                  // 3 chars
-				request.id +             // 36 chars
+			requestData =
+				"idt" +
+				data.getUserId() +       // 36 chars
 				requestLatitude.str() +  // 10 chars
 				requestLongitude.str() + // 10 chars
 				request.imageData;       // Variable content
-			
-			WiFiClient client;
-			while (!client.connect("example.com", 80)) delay(200);
-			client.print(requestData.c_str());
-			std::string responseStr = client.readStringUntil('\0').c_str();	
-			
-			response.name = "Sample Name";
-			response.description = "Sample Description";
+
+			response.animalId = getFromResponse(32);
+			response.name = getFromResponse(60);
+			response.description = getFromResponse(400);
+			response.audio = getFromResponse(0).c_str();
+
 			return response;
-		}	
+		}
 };

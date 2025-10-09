@@ -5,8 +5,8 @@
 #define KEYSIZE 48
 
 typedef std::function<void(bool confirmed, std::string text, int textLength)> KeyboardUserCallback;
-class Keyboard : public PrimitiveUI {
-	private:		
+class Keyboard : public UIComponent {
+	private:
 		int _keyX = 0, _keyY = 0, _lastKeyX = 0, _lastKeyY = 0; // Current key position
 		char _input[64] = {0}; // Buffer for input text
 		int _inputLength = 0;
@@ -16,14 +16,14 @@ class Keyboard : public PrimitiveUI {
 			{'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'},
 			{'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'},
 			{'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':'},
-			{'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', ';'},			
+			{'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', ';'},
 		};
 
 		void renderSpecialKeys(int key, bool active) {
 			switch(key) {
 				case 0: // Options change
 					tft.drawRect(0, 272, KEYSIZE, KEYSIZE, active ? TFT_BLUE : TFT_WHITE);
-					if(_visibilityChanged) tft.drawString("Opt", 10, 287);					
+					if(_visibilityChanged) tft.drawString("Opt", 10, 287);
 					break;
 				case 1: // Case change
 					tft.drawRect(KEYSIZE, 272, KEYSIZE, KEYSIZE, active ? TFT_BLUE : TFT_WHITE);
@@ -45,16 +45,16 @@ class Keyboard : public PrimitiveUI {
 		}
 
 	public:
-		Keyboard() : PrimitiveUI() {
+		Keyboard() : UIComponent() {
 			_visible = false;
 			_hasChanged = false;
 			_visibilityChanged = false;
 		};
 		~Keyboard() {}
 
-	void render() {		
-		if(!_hasChanged && !_visibilityChanged) return;				
-		_hasChanged = false;		
+	void render() {
+		if(!_hasChanged && !_visibilityChanged) return;
+		_hasChanged = false;
 
 		if(_visibilityChanged) {
 			tft.fillScreen(TFT_BLACK);
@@ -63,10 +63,10 @@ class Keyboard : public PrimitiveUI {
 			_visibilityChanged = false;
 			return;
 		}
-										
+
 		// Todo: Redraw only changed entries
 		tft.fillRect(0, 0, 480, 80, TFT_DARKGREY);
-		tft.setTextColor(TFT_WHITE);		
+		tft.setTextColor(TFT_WHITE);
 		tft.drawString(_input, 10, 10);
 
 		int line = 80;
@@ -83,21 +83,21 @@ class Keyboard : public PrimitiveUI {
 			return;
 		}
 		_visibilityChanged = false; // Reset visibility changed flag after verifying
-		
+
 		int textX = 15;
 		int textY = 15;
 		tft.setTextSize(2);
 
-		for (int yIndex = 0; yIndex < 4; ++yIndex) {			
+		for (int yIndex = 0; yIndex < 4; ++yIndex) {
 			int x = 0;
 			for (int xIndex = 0; xIndex < 10; ++xIndex) {
 				tft.drawRect(x, line, KEYSIZE, KEYSIZE, _keyX == xIndex && _keyY == yIndex ? TFT_BLUE : TFT_WHITE);
 				tft.drawChar(keyMap[yIndex][xIndex], x + textX, line + textY);
 				x += KEYSIZE;
-			}			
+			}
 			line += KEYSIZE;
 		}
-		
+
 		// special keys
 		renderSpecialKeys(0, _keyY == 4 && _keyX == 0); // Options change
 		renderSpecialKeys(1, _keyY == 4 && _keyX == 1); // Case change
@@ -107,22 +107,22 @@ class Keyboard : public PrimitiveUI {
 	}
 
 	void consumeKeys() {
-		if(!_visible) return;		
+		if(!_visible) return;
 
-		if (btn_lf.consume()) { 			
+		if (btn_lf.consume()) {
 			_keyX -= 1;
 			_hasChanged = true;
 		}
-		if (btn_rt.consume()) {						
+		if (btn_rt.consume()) {
 			_keyX += 1;
 			_hasChanged = true;
 		}
 
-		if (btn_up.consume()) {			
+		if (btn_up.consume()) {
 			_keyY -= 1;
 			_hasChanged = true;
 		}
-		if (btn_dw.consume()) {			
+		if (btn_dw.consume()) {
 			_keyY += 1;
 			_hasChanged = true;
 		}
@@ -134,12 +134,12 @@ class Keyboard : public PrimitiveUI {
 		else if (_keyY == 4 && _keyX > 4 || _keyX > 9) _keyX = 0;
 
 		if (btn_rn.consume()) {
-			_visible = false;			
+			_visible = false;
 			_visibilityChanged = true;
-			
-			callback(false);			
+
+			callback(false);
 			_inputLength = 0;
-		}			
+		}
 
 		if (btn_sl.consume()) {
 			char key = '\0';
@@ -162,10 +162,10 @@ class Keyboard : public PrimitiveUI {
 							_input[_inputLength] = '\0';
 							_hasChanged = true;
 							return;
-						}						
+						}
 					case 4: // Enter
 						callback(true);
-						break;					
+						break;
 				}
 			} else {
 				key = keyMap[_keyY][_keyX];
@@ -175,11 +175,11 @@ class Keyboard : public PrimitiveUI {
 
 			if(key == '\0') return; // No key pressed
 			if(_inputLength == 64) return;
-			
+
 			_hasChanged = true;
 			_input[_inputLength] = key;
 			_inputLength++;
-		}		
+		}
 	}
 
 	void use(KeyboardUserCallback callback) {

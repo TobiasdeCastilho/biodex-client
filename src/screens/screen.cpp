@@ -4,9 +4,9 @@
 
 #include "../classes/ui.cpp"
 
-class Screen: public PrimitiveUI {
+class Screen: public UIComponent {
 	public:
-		Screen(): PrimitiveUI() {			
+		Screen(): UIComponent() {
 		}
 
 		virtual void load() {

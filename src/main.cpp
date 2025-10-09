@@ -4,6 +4,7 @@
 #include "globals/buttons.h"
 #include "globals/keyboard.h"
 #include "globals/loaders.h"
+#include "globals/dialog.h"
 
 // Classes
 #include "classes/button.cpp"
@@ -12,11 +13,31 @@
 #include "classes/options.cpp"
 #include "classes/screenlist.cpp"
 
-Comunication comunication;
-ControllerUI renderList;
+/** User Setup
+#define ST7796_DRIVER
+#define USE_HSPI_PORT
 
-OptionList optionList(	
-	{0, 270},	
+#define TFT_CS   1
+#define TFT_RST  2
+#define TFT_DC   42
+#define TFT_MOSI 41
+#define TFT_SCLK 40
+#define TFT_MISO 39
+
+#define LOAD_GLCD
+#define LOAD_FONT2
+#define LOAD_FONT4
+#define LOAD_GFXFF
+
+#define SPI_FREQUENCY  27000000
+#define SPI_READ_FREQUENCY  20000000
+**/
+
+Comunication comunication;
+UIController renderList;
+
+OptionList optionList(
+	{0, 270},
 	{30, 30}
 );
 ScreensList screenList;
@@ -30,7 +51,7 @@ void buttonsRead(void *param) {
 		btn_rn.read();
 		btn_sl.read();
 
-		vTaskDelay(10 / portTICK_PERIOD_MS); // Delay to avoid busy-waiting
+		vTaskDelay(34 / portTICK_PERIOD_MS); // Delay to avoid busy-waiting
 	}
 }
 
@@ -38,12 +59,12 @@ void render(void *param) {
 	tft.fillScreen(TFT_BLACK);
 
 	while(true) {
-		if(keyboard.visibilityChanged()){			
+		if(keyboard.visibilityChanged()){
 			optionList.reset();
 			screenList.reset();
 		}
 		if(screenList.visibilityChanged())
-			optionList.reset();		
+		optionList.reset();
 
 		renderList.render();
 
@@ -51,14 +72,39 @@ void render(void *param) {
 	}
 }
 
-void setup(){	
-	Serial.begin(115200);	
+void setupInfos() {
+  circleLoad.show();
 
-	Serial.println("Starting setup...");
-	if (!LittleFS.begin()) {
-    Serial.println("Failed to mount file system");
-    return;
-  }	
+  // Verify current Wi-Fi connection
+  std::string wifiId = data.getWiFiId(), wifiPassword = data.getWiFiPassword();
+  if(wifiId != "" && wifiPassword != "") {
+    int tries = 10;
+    Serial.println("Connecting to previous WiFi...");
+    WiFi.begin(wifiId.c_str(),wifiPassword.c_str());
+    while (WiFi.status() != WL_CONNECTED && tries-- > 0) delay(500);
+  }
+  if(WiFi.status() != WL_CONNECTED)
+    screenList.addScreenToList(WIFI_SETTINGS_SCREEN);
+
+  // Verify user data
+  if(data.getUserId())
+    screenList.addScreenToList(USER_SETTINGS)
+
+
+  circleLoad.hide();
+}
+
+void setup(){
+	Serial.begin(115200);
+
+	if (!LittleFS.begin()) return;
+	if(!LittleFS.exists("/data")) {
+		if(!LittleFS.mkdir("/data"))
+		  return;
+	  Serial.printf("Dir created");
+	}
+
+	data.load();
 
 	Serial.println("Initializing TFT display...");
 	tft.init();
@@ -69,45 +115,42 @@ void setup(){
 
 	Serial.println("Creating options list...");
 	optionList.addOptions({
-		Option([](bool active) { screenList.setCurrentScreen(CAMERA_SCREEN); }, "camera.bin", ""),
+		Option([](bool active) {
+			if(WiFi.status() != WL_CONNECTED){
+				dialog.open("Não conectado", "É necessário conectar à rede Wi-Fi para iniciar\no processo de identificação");
+				return;
+			}
+			screenList.setCurrentScreen(CAMERA_SCREEN);
+		}, "camera.bin", ""),
 		Option([](bool active) { Serial.println("Option 2 selected"); }, "definicoes.bin", ""),
-		Option([](bool active) { 
-			screenList.setCurrentScreen(WIFI_SETTINGS_SCREEN); 			
+		Option([](bool active) {
+			screenList.setCurrentScreen(WIFI_SETTINGS_SCREEN);
 		}, "lista.bin", ""),
 		Option([](bool active) { keyboard.show(); }, "teclado.bin", "")
 	});
 
-	optionList.setInCenterX();	
+	optionList.setInCenterX();
 	Serial.println("Options list created");
 
 	Serial.println("Setting up render list...");
+	renderList.add(&dialog);
 	renderList.add(&circleLoad);
 	renderList.add(&loaderProgress);
 	renderList.add(&keyboard);
 	renderList.add(&screenList);
 	renderList.add(&optionList);
-	Serial.println("Render list setup complete");	
+	Serial.println("Render list setup complete");
 
 	Serial.println("Setup complete, starting tasks...");
 	xTaskCreatePinnedToCore(
-	  buttonsRead, 
-	  "ButtonsRead", 
-	  2048,        
-	  NULL,        
-	  2,           
-	  NULL,        
+	  buttonsRead,
+	  "ButtonsRead",
+	  2048,
+	  NULL,
+	  2,
+	  NULL,
 	  0
   );
-
-	// xTaskCreatePinnedToCore(
-	//   consumeKeys, 
-	//   "ConsumeKeys", 
-	//   2048,        
-	//   NULL,        
-	//   1,           
-	//   NULL,        
-	//   0              
-	// );
 
 	xTaskCreatePinnedToCore(
 	  render,
@@ -117,9 +160,11 @@ void setup(){
 	  1,
 	  NULL,
 	  1
-  );	
+  );
+
+  setupInfos();
 }
 
-void loop(){					
+void loop(){
 	renderList.consumeKeys();
 }

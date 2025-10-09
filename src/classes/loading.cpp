@@ -2,21 +2,21 @@
 
 #include "ui.cpp"
 
-class LoaderProgress: public PrimitiveUI {
+class LoaderProgress: public UIComponent {
 	private:
 		int _progress = 0;
 		bool _loading = false;
-	
+
 	public:
-		LoaderProgress(): PrimitiveUI() {}
+		LoaderProgress(): UIComponent() {}
 
 		void increaseProgress(int progress) {
 			_progress = progress;
-			if(_progress > 100) _progress = 100;			
+			if(_progress > 100) _progress = 100;
 			show();
 		}
-		
-		void completeLoading() {			
+
+		void completeLoading() {
 			_progress = 0;
 			hide();
 		}
@@ -27,7 +27,6 @@ class LoaderProgress: public PrimitiveUI {
 			_hasChanged = false;
 
 			if(_visibilityChanged){
-				tft.fillScreen(TFT_BLACK);
 				_visibilityChanged = false;
 
 				if(_visible)
@@ -37,33 +36,29 @@ class LoaderProgress: public PrimitiveUI {
 			if(!_visible)
 				return;
 
-			tft.fillRoundRect(TFT_WIDTH / 2 - 70, TFT_HEIGHT / 2 - 10, 140 * _progress / 100, 20, 10, TFT_GREEN);			
+			tft.fillRoundRect(TFT_WIDTH / 2 - 70, TFT_HEIGHT / 2 - 10, 140 * _progress / 100, 20, 10, TFT_GREEN);
 		}
 };
 
 #define CIRCLE_LOAD_PARTS 12
-class CircleLoad: public PrimitiveUI {
+class CircleLoad: public UIComponent {
 	private:
 		int _part = CIRCLE_LOAD_PARTS;
-		unsigned long _lastUpdate = 0;	
+		unsigned long _lastUpdate = 0;
 
 	public:
-		CircleLoad(): PrimitiveUI() {}
+		CircleLoad(): UIComponent() {}
 
 		void render() override {
 			unsigned long currentMillis = millis();
 	    if(currentMillis - _lastUpdate > 100) _hasChanged = true;
 
 	    if(!_visibilityChanged && !_hasChanged) return;
-	    
+
 			_hasChanged = false;
+      _visibilityChanged = false;
 
-			if(_visibilityChanged){
-        tft.fillScreen(TFT_BLACK);			
-        _visibilityChanged = false;
-	    }
-
-			if(!_visible) return;			    
+			if(!_visible) return;
 
 	    const int totalParts = 12;
 	    const int centerX = TFT_WIDTH / 2;
@@ -77,17 +72,13 @@ class CircleLoad: public PrimitiveUI {
 
         int x = centerX + radiusOrbit * cos(angleRad);
         int y = centerY + radiusOrbit * sin(angleRad);
-        
+
         int brightness = 255 - (i * (200 / totalParts));
         uint16_t color = tft.color565(brightness, brightness, brightness);
-        
-        float pulse = (i * (maxCircleRadius - 2) / (float)totalParts);
 
-				tft.fillCircle(x, y, maxCircleRadius, TFT_BLACK);
-        tft.fillCircle(x, y, pulse, color);
+        tft.fillCircle(x, y, maxCircleRadius, color);
 	    }
 
-	    // _part = (_part - 1 + totalParts) % totalParts;
 			_part = (_part + 1) % totalParts; // Increment part for next render
 	    _lastUpdate = millis();
 		}

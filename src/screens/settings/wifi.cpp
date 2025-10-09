@@ -3,11 +3,12 @@
 #include <WiFi.h>
 
 #include "../../globals/tft.h"
-#include "../../globals/keyboard.h"
 #include "../../globals/loaders.h"
+#include "../../globals/data.h"
+#include "../../globals/keyboard.h"
 
 #include "../screen.cpp"
-#include "../../types/ui.cpp"
+
 #include "../../classes/options.cpp"
 
 class WifiSettingsScreen: public Screen {
@@ -15,9 +16,9 @@ class WifiSettingsScreen: public Screen {
 		OptionList * _options;
 
 	public:
-    WifiSettingsScreen(): Screen() {		
+    WifiSettingsScreen(): Screen() {
 			_options = new OptionList({0, 0}, {460, 30});
-			_options->setListType(VERTICAL);			
+			_options->setListType(VERTICAL);
 		}
 
     void render(){
@@ -32,15 +33,20 @@ class WifiSettingsScreen: public Screen {
 
 		void load() {
 			circleLoad.show();
-			int networksAmount = WiFi.scanNetworks();								
+			int networksAmount = WiFi.scanNetworks();
 
 			const int progressInclusion = 50 / networksAmount;
-			for (int i = 0; i < networksAmount; i++) {				
+			for (int i = 0; i < networksAmount; i++) {
 				_options->addOptions({
 					Option([i](bool active) {
 						keyboard.use([i](bool confirmed, std::string text, int textLength) {
-							if(confirmed) {					            
-								WiFi.begin(WiFi.SSID(i).c_str(), text.c_str());								
+							if(confirmed) {
+								WiFi.begin(WiFi.SSID(i).c_str(), text.c_str());
+
+								data.setWiFiId(WiFi.SSID(i).c_str());
+								data.setWifiPassword(text);
+								data.save();
+
 								int maxTries = 20;
 								while (WiFi.status() != WL_CONNECTED && maxTries-- > 0) delay(500);
 								return;

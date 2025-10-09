@@ -3,6 +3,10 @@
 #include <Arduino.h>
 #include "esp_camera.h"
 
+#include "../globals/loaders.h"
+#include "../globals/buttons.h"
+#include "../globals/tft.h"
+
 #include "ui.cpp"
 
 #define PWDN_GPIO_NUM    -1
@@ -25,19 +29,24 @@
 #define HREF_GPIO_NUM    7
 #define PCLK_GPIO_NUM    13
 
-class Camera: public PrimitiveUI {		 
+class Camera: public UIComponent {
 	private:
 		camera_config_t _config;
-	
+		camera_fb_t * fb = NULL;
+		bool _photo = false;
+
 	public:
-		Camera(): PrimitiveUI() {			
+		Camera(): UIComponent() {
 			config();
-			
-      esp_err_t err;			
-      while((err = esp_camera_init(&_config)) != ESP_OK) {       
+
+			_definition.point.x = TFT_WIDTH / 2 - 200;
+			_definition.point.y = TFT_HEIGHT / 2 - 148;
+
+      esp_err_t err;
+      while((err = esp_camera_init(&_config)) != ESP_OK) {
         delay(1000);
-      }			
-		}		
+      }
+		}
 		~Camera() {
 			esp_camera_deinit();
 		}
@@ -67,24 +76,29 @@ class Camera: public PrimitiveUI {
 			_config.jpeg_quality = 24;
 
 			_config.frame_size = FRAMESIZE_CIF;
-			_config.fb_count = 1;      
+			_config.fb_count = 1;
       _config.fb_location = CAMERA_FB_IN_DRAM;
       _config.grab_mode = CAMERA_GRAB_LATEST;
 
-		}			
+		}
 
 		void render() {
-			camera_fb_t * fb = NULL;
-      fb = esp_camera_fb_get();
+			if(_photo) return;
+
+			fb = esp_camera_fb_get();
 			if(!fb) return;
-			
-			tft.pushImage(_definition.point.x, _definition.point.y, fb->width, fb->height, (uint16_t *)fb->buf);			
+
+			tft.pushImage(_definition.point.x, _definition.point.y, fb->width, fb->height, (uint16_t *)fb->buf);
 
 			esp_camera_fb_return(fb);
 		}
 
 		void consumeKeys() override {
-			// Handle key inputs specific to the camera screen here
+			if(btn_sl.consume()) {
+				_photo = true;
+
+				btn_rn.stopListen();
+			}
 		}
 };
 
