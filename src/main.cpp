@@ -79,7 +79,7 @@ void setupInfos() {
   std::string wifiId = data.getWiFiId(), wifiPassword = data.getWiFiPassword();
   if(wifiId != "" && wifiPassword != "") {
     int tries = 10;
-    Serial.println("Connecting to previous WiFi...");
+
     WiFi.begin(wifiId.c_str(),wifiPassword.c_str());
     while (WiFi.status() != WL_CONNECTED && tries-- > 0) delay(500);
   }
@@ -87,33 +87,23 @@ void setupInfos() {
     screenList.addScreenToList(WIFI_SETTINGS_SCREEN);
 
   // Verify user data
-  if(data.getUserId())
-    screenList.addScreenToList(USER_SETTINGS)
-
+  if(data.getUserId() == "")
+    screenList.addScreenToList(USER_SETTINGS);
 
   circleLoad.hide();
 }
 
 void setup(){
 	Serial.begin(115200);
-
-	if (!LittleFS.begin()) return;
-	if(!LittleFS.exists("/data")) {
-		if(!LittleFS.mkdir("/data"))
-		  return;
-	  Serial.printf("Dir created");
-	}
+	if(!LittleFS.begin() && (!LittleFS.exists("/data") || !LittleFS.mkdir("/data"))) return;
 
 	data.load();
 
-	Serial.println("Initializing TFT display...");
 	tft.init();
 	tft.setRotation(3);
 	tft.invertDisplay(true);
 	tft.fillScreen(TFT_BLACK);
-	Serial.println("TFT display initialized");
 
-	Serial.println("Creating options list...");
 	optionList.addOptions({
 		Option([](bool active) {
 			if(WiFi.status() != WL_CONNECTED){
@@ -122,26 +112,21 @@ void setup(){
 			}
 			screenList.setCurrentScreen(CAMERA_SCREEN);
 		}, "camera.bin", ""),
-		Option([](bool active) { Serial.println("Option 2 selected"); }, "definicoes.bin", ""),
+		Option([](bool active) { }, "definicoes.bin", ""),
 		Option([](bool active) {
 			screenList.setCurrentScreen(WIFI_SETTINGS_SCREEN);
 		}, "lista.bin", ""),
 		Option([](bool active) { keyboard.show(); }, "teclado.bin", "")
 	});
-
 	optionList.setInCenterX();
-	Serial.println("Options list created");
 
-	Serial.println("Setting up render list...");
 	renderList.add(&dialog);
 	renderList.add(&circleLoad);
 	renderList.add(&loaderProgress);
 	renderList.add(&keyboard);
 	renderList.add(&screenList);
 	renderList.add(&optionList);
-	Serial.println("Render list setup complete");
 
-	Serial.println("Setup complete, starting tasks...");
 	xTaskCreatePinnedToCore(
 	  buttonsRead,
 	  "ButtonsRead",

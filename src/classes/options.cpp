@@ -24,9 +24,6 @@ class Option {
 
 				_buffer = new uint8_t[iconFile.size()];
 
-				Serial.print("Loading icon: ");
-				Serial.println(iconFile.size());
-
 				iconFile.readBytes((char *)_buffer, iconFile.size());
 				iconFile.close();
 			}
@@ -187,10 +184,6 @@ class OptionList: public UIComponent {
 			int currentY = _position.y + _paddingVertical;
 
 			if (!_visibilityChanged) {
-				Serial.printf("X: %d, Y: %d\n", currentX, currentY);
-				Serial.printf("X: %d, Y: %d\n", currentX + (_listType == HORIZONTAL ? _selectedOption * (_optionsSize.width + 5) : 0), currentY + (_listType == VERTICAL ? _selectedOption * (_optionsSize.height + 5) : 0));
-				Serial.printf("X: %d, Y: %d\n", currentX + (_listType == HORIZONTAL ? _lastSelectedOption * (_optionsSize.width + 5) : 0), currentY + (_listType == VERTICAL ? _lastSelectedOption * (_optionsSize.height + 5) : 0));
-
 				tft.drawRoundRect(
 					currentX + (_listType == HORIZONTAL ? _selectedOption * (_optionsSize.width + 5) : 0),
 					currentY + (_listType == VERTICAL ? _selectedOption * (_optionsSize.height + 5) : 0),

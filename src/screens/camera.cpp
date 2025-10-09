@@ -4,7 +4,7 @@
 #include "screen.cpp"
 
 class CameraScreen: public Screen {
-	private:		
+	private:
 		Camera *_camera;
 
 	public:
@@ -15,16 +15,12 @@ class CameraScreen: public Screen {
 			delete _camera;
 		}
 
-		void render() {											
+		void render() {
 			_camera->render();
 		}
 
 		void consumeKeys() override {
-			if(btn_rn.consume()){
-				hide();
-				Serial.println("CameraScreen: Hide called");
-			}
-			
+			if(btn_rn.consume()) hide();
 			_camera->consumeKeys();
 		}
-}; 
+};

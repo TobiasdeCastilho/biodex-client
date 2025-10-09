@@ -36,11 +36,9 @@ class ScreensList: public UIComponent {
 
 			switch(screenType) {
 				case CAMERA_SCREEN:
-					Serial.println("Setting current screen to CAMERA_SCREEN");
 					_currentScreen = new CameraScreen();
 					break;
 				case WIFI_SETTINGS_SCREEN:
-					Serial.println("Setting current screen to WIFI_SETTINGS_SCREEN");
 					_currentScreen = new WifiSettingsScreen();
 					break;
 			}

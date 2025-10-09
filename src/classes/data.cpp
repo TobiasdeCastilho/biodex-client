@@ -16,18 +16,13 @@ class Data {
 
     void load() {
       File file = LittleFS.open(DATA_PATH, "r");
-      if (!file) {
-        Serial.println("Failed to open persistent data");
-        return;
-      }
+      if (!file) return;
 
       wifiId = file.read();
       wifiPassword = file.read();
 
       username = file.read();
       userId = file.read();
-
-      Serial.printf("Loaded data: %s, %s, %s, %s\n", wifiId, wifiPassword, username, userId);
 
       file.close();
     }

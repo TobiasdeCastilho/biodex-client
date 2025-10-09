@@ -153,7 +153,6 @@ class Keyboard : public UIComponent {
 						// ...
 						break;
 					case 2: // Space
-						Serial.println("CU");
 						key = ' ';
 						break;
 					case 3: // Backspace
@@ -170,8 +169,6 @@ class Keyboard : public UIComponent {
 			} else {
 				key = keyMap[_keyY][_keyX];
 			}
-
-			Serial.printf("Key pressed: %c, Is invalid: %d, Length: %d\n", key, key == '\0', _inputLength);
 
 			if(key == '\0') return; // No key pressed
 			if(_inputLength == 64) return;
