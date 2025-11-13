@@ -1,3 +1,5 @@
+#pragma once
+
 #include <string>
 #include <WiFi.h>
 #include <WiFiClient.h>
@@ -6,11 +8,14 @@
 
 #include "../globals/data.h"
 
+#define PROTOCOL_DEFAULT_PORT 4002
+#define PROTOCOL_DEFAULT_HOST "10.0.0.196"
+
 typedef enum {
-    CONNECTED,
-    CONNECTING,
-    RETRYING,
-    FAILED
+  CONNECTED,
+  CONNECTING,
+  RETRYING,
+  FAILED
 } WifiState;
 typedef std::function<void(WifiState)> WifiStateCallback;
 
@@ -65,7 +70,7 @@ typedef struct {
   char* image;
 } ImageSeatchResponse;
 
-class Comunication {
+class Request {
   private:
     std::string requestData, responseData;
 
@@ -86,14 +91,17 @@ class Comunication {
 
     void sendRequest() {
       WiFiClient client;
-			while (!client.connect("server", 80)) delay(200);
-			client.print(requestData.c_str());
+			while (!client.connect(PROTOCOL_DEFAULT_HOST, PROTOCOL_DEFAULT_PORT)) delay(200);
+			std::string data = requestData;
+			Serial.printf("Message: %s", data.c_str());
+
+			client.print(data.c_str());
 			responseData = client.readStringUntil('\0').c_str();
     }
 
   public:
-		Comunication() {}
-		~Comunication() {}
+		Request() {}
+		~Request() {}
 
 		void requestInitialize(const InitializeRequest& request) {
 			requestData =
@@ -103,7 +111,10 @@ class Comunication {
 
 			sendRequest();
 
-			data.setUserId(getFromResponse(0));
+			std::string userId = getFromResponse(0);
+			data.setUserId(userId);
+
+			Serial.printf("User Id: %s", userId.c_str());
 		}
 
 		IdentifyResponse requestIdentify(const IdentifyRequest& request) {

@@ -1,8 +1,5 @@
-#ifndef GLOBALS_DATA
-#define GLOBALS_DATA
+#pragma once
 
-#include "../classes/data.cpp"
+#include "../data/persistence.cpp"
 
 extern Data data;
-
-#endif

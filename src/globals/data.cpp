@@ -1,3 +1,3 @@
-#include "../classes/data.cpp"
+#include "data.h"
 
 Data data = Data();

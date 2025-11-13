@@ -1,3 +1,5 @@
+#pragma once
+
 #define DATA_PATH "/data/persist.data"
 
 #include <string>
@@ -6,9 +8,8 @@
 
 class Data {
   private:
-    // All data to keep
-    std::string wifiId, wifiPassword; // Lines 1, 2
-    std::string username, userId; // Lines 3, 4
+    std::string wifiId, wifiPassword;
+    std::string username, userId;
 
   public:
     Data(){};
@@ -29,6 +30,8 @@ class Data {
 
     void save() {
       LittleFS.remove(DATA_PATH);
+
+      Serial.printf("New Values: %s\n%s\n%s\n%s",wifiId,wifiPassword,username,userId);
 
       File file = LittleFS.open(DATA_PATH, "w+");
       file.printf("%s\n%s\n%s\n%s",wifiId,wifiPassword,username,userId);
