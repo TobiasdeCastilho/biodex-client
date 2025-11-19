@@ -5,8 +5,11 @@
 #include <WiFiClient.h>
 #include <iomanip>
 #include <sstream>
+#include "esp_camera.h"
 
 #include "../globals/data.h"
+
+#include "../hardware/audio.cpp"
 
 #define PROTOCOL_DEFAULT_PORT 4002
 #define PROTOCOL_DEFAULT_HOST "10.0.0.196"
@@ -30,13 +33,13 @@ typedef struct {
 typedef struct {
 	double latitude;
 	double longitude;
-	std::string imageData;
 } IdentifyRequest;
 typedef struct {
-  std::string animalId;
 	std::string name;
+	std::string popularName;
 	std::string description;
-	const char* audio;
+	uint8_t* audio;
+	size_t audioSize;
 } IdentifyResponse;
 
 typedef struct {
@@ -74,6 +77,10 @@ class Request {
   private:
     std::string requestData, responseData;
 
+    bool checkConnection(){
+      return WiFi.status() == WL_CONNECTED;
+    }
+
     std::string getFromResponse(int size){
       if(!size) return responseData;
 
@@ -89,65 +96,121 @@ class Request {
       return result;
     }
 
-    void sendRequest() {
+    void sendRequest(const char* buffer, size_t len) {
       WiFiClient client;
-			while (!client.connect(PROTOCOL_DEFAULT_HOST, PROTOCOL_DEFAULT_PORT)) delay(200);
-			std::string data = requestData;
-			Serial.printf("Message: %s", data.c_str());
+			connectClient(client);
 
-			client.print(data.c_str());
-			responseData = client.readStringUntil('\0').c_str();
+      size_t sent = 0;
+      while(sent < len){
+        sent += client.write((const uint8_t*)buffer + sent, len - sent);
+      }
+      responseData = client.readStringUntil('\0').c_str();
+    }
+
+    void connectClient(WiFiClient& client) {
+      while (!client.connect(PROTOCOL_DEFAULT_HOST, PROTOCOL_DEFAULT_PORT)) delay(200);
     }
 
   public:
 		Request() {}
 		~Request() {}
 
+		IdentifyResponse lastIdentification;
+
 		void requestInitialize(const InitializeRequest& request) {
+			if(!checkConnection()) return;
+
 			requestData =
 			  "ini" +
-				completeData(request.user, 30),
+				completeData(request.user, 30) +
 				completeData(request.password, 30);
 
-			sendRequest();
+			sendRequest(requestData.c_str(), requestData.length());
+
+			std::string status = getFromResponse(3);
+			if(!status.compare("000")) return;
 
 			std::string userId = getFromResponse(0);
-			data.setUserId(userId);
 
-			Serial.printf("User Id: %s", userId.c_str());
+			data.setUserId(userId);
+			data.setUsername(request.user);
+			data.save();
+
+			responseData.clear();
 		}
 
-		IdentifyResponse requestIdentify(const IdentifyRequest& request) {
-			IdentifyResponse response;
+		void requestIdentify(const IdentifyRequest& request, camera_fb_t* photo) {
+      if(!checkConnection()) return;
 
-			std::ostringstream requestLatitude;
-			requestLatitude << std::showpos
-				<< std::fixed
-				<< std::setprecision(6)
-				<< std::setw(10)
-				<< std::setfill('0')
-				<< request.latitude;
+      std::ostringstream requestLatitude;
+      requestLatitude << std::showpos
+          << std::fixed
+          << std::setprecision(6)
+          << std::setw(10)
+          << std::setfill('0')
+          << request.latitude;
 
-			std::ostringstream requestLongitude;
-			requestLongitude << std::showpos
-				<< std::fixed
-				<< std::setprecision(6)
-				<< std::setw(10)
-				<< std::setfill('0')
-				<< request.longitude;
+      std::ostringstream requestLongitude;
+      requestLongitude << std::showpos
+          << std::fixed
+          << std::setprecision(6)
+          << std::setw(10)
+          << std::setfill('0')
+          << request.longitude;
 
-			requestData =
-				"idt" +
-				data.getUserId() +       // 36 chars
-				requestLatitude.str() +  // 10 chars
-				requestLongitude.str() + // 10 chars
-				request.imageData;       // Variable content
+      WiFiClient client;
+      while (!client.connect(PROTOCOL_DEFAULT_HOST, PROTOCOL_DEFAULT_PORT)) {
+        delay(200);
+      }
 
-			response.animalId = getFromResponse(32);
-			response.name = getFromResponse(60);
-			response.description = getFromResponse(400);
-			response.audio = getFromResponse(0).c_str();
+      std::string requestData =
+          "idt" +
+          data.getUserId() +
+          requestLatitude.str() +
+          requestLongitude.str();
 
-			return response;
+      client.print(requestData.c_str());
+
+      const size_t chunkSize = 512;
+      size_t sent = 0;
+      while(sent < photo->len){
+        size_t len = (photo->len - sent > chunkSize) ? chunkSize : (photo->len - sent);
+        client.write((const uint8_t*)photo->buf + sent, len);
+        sent += len;
+        yield();
+      }
+      client.print('\0');
+
+      responseData.clear();
+      while (responseData.size() < 3 + 560 + 20) {
+        if (client.available()) {
+          responseData.push_back(client.read());
+        } else {
+          delay(1);
+        }
+      }
+
+      std::string status  = getFromResponse(3);
+      if (!status.compare("000")) return;
+
+      lastIdentification.name.clear();
+      lastIdentification.popularName.clear();
+      lastIdentification.description.clear();
+      delete lastIdentification.audio;
+
+      lastIdentification.name = getFromResponse(60);
+      lastIdentification.popularName = getFromResponse(100);
+      lastIdentification.description = getFromResponse(400);
+      std::string sizeStr = getFromResponse(10);
+      responseData.clear();
+
+      uint32_t fileSize = atoi(sizeStr.c_str());
+      if(!fileSize) return;
+
+      lastIdentification.audio = new uint8_t[fileSize];
+      lastIdentification.audioSize = fileSize;
+
+      client.read(lastIdentification.audio, fileSize);
+      client.stop();
 		}
 };

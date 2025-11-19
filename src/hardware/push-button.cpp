@@ -2,6 +2,8 @@
 
 #include <Arduino.h>
 
+#include "audio.cpp"
+
 class Button {
   private:
     int _pin;
@@ -31,6 +33,16 @@ class Button {
 				return;
 			}
 
+      if(reading) {
+        const uint8_t shutter_click[] = {
+          128,128,128,128,128,
+          192,240,255,240,192,144,120,144,
+          192,240,255,240,192,144,120,108,
+          120,132,140,135,130,128,128,128
+        };
+        play_raw_pwm(shutter_click, sizeof(shutter_click));
+      }
+
 			_last_stable_state = reading;
 			_last_state = reading;
     }
@@ -41,4 +53,6 @@ class Button {
 
 			return state;
     }
+
+    bool check() { return _last_state; };
 };

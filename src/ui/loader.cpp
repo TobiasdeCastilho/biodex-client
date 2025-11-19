@@ -17,7 +17,7 @@ class UILoader : public UIComponent {
 
   public:
   	UILoader()
-  	: UIComponent(THEME_BG) {
+  	: UIComponent({{SCREEN_WIDTH, SCREEN_HEIGHT},{0,0},THEME_BG}) {
   		setFocusable(false);
   		type = COMPONENT;
   	}
@@ -34,6 +34,9 @@ class UILoader : public UIComponent {
 
   		if(!isChanged()) return;
 
+      // If is the first render
+  		if(!lastUpdate) tft.fillRect(settings.position.x, settings.position.y, settings.size.width, settings.size.height, settings.color);
+
   		hasChanged = false;
   		lastUpdate = currentMillis;
 
@@ -43,9 +46,6 @@ class UILoader : public UIComponent {
   		const float radiusOrbit = 40.0f;
   		const float maxCircleRadius = 8.0f;
 
-  		// Limpa área do loader
-  		tft.fillRect(settings.position.x, settings.position.y,
-  					 settings.size.width, settings.size.height, settings.color);
 
   		for(int i = totalParts; i > 0; i--){
   			float angleDeg = ((i + part) % totalParts) * (360.0f / totalParts);

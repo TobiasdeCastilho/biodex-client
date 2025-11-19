@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <functional>
 
 #include "../globals/hardware.h"
 
@@ -10,117 +11,117 @@
 #include "keyboard.cpp"
 
 class UIManager {
-private:
-	std::vector<UIContainer*> screens;
-	int currentScreenIndex = -1;
+  private:
+    std::vector<std::function<UIContainer*()>> screenFactories;
+    std::vector<UIContainer*> screens;
 
-	UILoader loader;
-	bool loaderActive = false;
+    UILoader* loader = nullptr;
+    bool loaderActive = false;
 
-	UIKeyboard keyboard;
-	bool keyboardActive = false;
+    UIKeyboard* keyboard = nullptr;
+    bool keyboardActive = false;
 
-public:
-	UIManager() {}
+  public:
+    UIManager() {}
 
-	void addScreen(UIContainer *screen) {
-		screens.push_back(screen);
-		if(currentScreenIndex == -1) currentScreenIndex = 0;
+    ~UIManager() {
+      if(loader) { delete loader; loader = nullptr; }
+      if(keyboard) { delete keyboard; keyboard = nullptr; }
 
-		if(!screens[currentScreenIndex]->getFocusedChild()){
-			screens[currentScreenIndex]->focusNext();
-		}
-	}
+      for(auto screen : screens) {
+        if(screen) delete screen;
+      }
+    }
 
-	void setCurrentScreen(int index) {
-		if(index >= 0 && index < (int)screens.size()){
-			if(currentScreenIndex >=0 && currentScreenIndex < (int)screens.size()){
-				UIContainer *old = screens[currentScreenIndex];
-				UIComponent *focused = old->getFocusedChild();
-				if(focused) focused->setFocus(false);
-			}
+    void addScreen(std::function<UIContainer*()> screenFactory) {
+      screenFactories.push_back(screenFactory);
+      screens.push_back(nullptr);
+    }
 
-			currentScreenIndex = index;
-			UIContainer *current = screens[currentScreenIndex];
-			current->markChanged();
+    void setCurrentScreen(int index) {
+      if (index < 0 || index >= (int)screenFactories.size()) return;
 
-			if(!current->getFocusedChild()){
-				current->focusNext();
-			}
-		}
-	}
+      UIContainer* oldScreen = getCurrentScreen();
+      if(oldScreen) {
+        delete oldScreen;
+        screens.pop_back();
+      }
 
-	UIContainer* getCurrentScreen() {
-		if(currentScreenIndex >= 0 && currentScreenIndex < (int)screens.size())
-			return screens[currentScreenIndex];
-		return nullptr;
-	}
+      screens.push_back(screenFactories[index]());
 
-	void toggleLoader(bool show) {
-		loaderActive = show;
-		if(loaderActive){
-			loader.show();
-		} else {
-			loader.hide();
-			UIContainer *current = getCurrentScreen();
-			if(current){
-				current->markChanged();
-			}
-		}
-	}
+      UIContainer* current = getCurrentScreen();
+      if(!current) return;
+      current->markChanged();
+      if (!current->getFocusedChild()) current->focusNext();
+    }
 
-	// Usar teclado com callback
-	void useKeyboard(KeyboardUserCallback cb) {
-		keyboardActive = true;
-		keyboard.use(cb);
-	}
+    UIContainer* getCurrentScreen() {
+      if (!screens.size()) return nullptr;
+      return screens[screens.size() - 1];
+    }
 
-	void render() {
-		if(loaderActive){
-			if(loader.isVisible()) {
-				loader.render();
-				return;
-			}
-			toggleLoader(false);
-		}
+    void toggleLoader(bool show) {
+      loaderActive = show;
 
-		if(keyboardActive){
-			if(keyboard.isVisible()){
-				keyboard.render();
-				return;
-			}
-			keyboardActive = false;
-			UIContainer *current = getCurrentScreen();
-			if(current) current->markChanged();
-		}
+      if(loaderActive) {
+        if(!loader) loader = new UILoader();
+        loader->show();
+      } else {
+        if(loader) {
+          loader->hide();
+          delete loader;
+          loader = nullptr;
+        }
 
-		UIContainer *current = getCurrentScreen();
-		if(current) current->render();
-	}
+        UIContainer* current = getCurrentScreen();
+        if (current) current->markChanged();
+      }
+    }
 
-	void consumeKeys() {
-		if(loaderActive) return;
+    void useKeyboard(KeyboardUserCallback cb) {
+      keyboardActive = true;
+      if(!keyboard) keyboard = new UIKeyboard();
+      keyboard->use(cb);
+    }
 
-		if(keyboardActive && keyboard.isVisible()) {
-			keyboard.consumeKeys();
-			return;
-		}
+    void render() {
+      if (loaderActive) {
+        if(loader && loader->isVisible()) { loader->render(); return; }
+        toggleLoader(false);
+      }
 
-		UIContainer *current = getCurrentScreen();
-		if(!current) return;
+      if (keyboardActive) {
+        if(keyboard && keyboard->isVisible()) { keyboard->render(); return; }
+        keyboardActive = false;
+        if(keyboard) { delete keyboard; keyboard = nullptr; }
 
-		if(buttonLeft.consume()) current->focusPrev();
-		if(buttonRight.consume()) current->focusNext();
-		if(buttonUp.consume()) {}
-		if(buttonDown.consume()) {}
+        UIContainer* current = getCurrentScreen();
+        if (current) current->markChanged();
+      }
 
-		if(buttonSelect.consume()){
-			UIComponent *focused = current->getFocusedChild();
-			if(focused && focused->getType() == BUTTON){
-				((UIButton*)focused)->press();
-			}
-		}
+      UIContainer* current = getCurrentScreen();
+      if (current) current->render();
+    }
 
-		if(buttonReturn.consume()) setCurrentScreen(0);
-	}
+    void consumeKeys() {
+      if (loaderActive) return;
+
+      if (keyboardActive && keyboard && keyboard->isVisible()) { keyboard->consumeKeys(); return; }
+
+      if (buttonReturn.consume()) setCurrentScreen(0);
+
+      UIContainer* current = getCurrentScreen();
+      if (!current) return;
+      if (!current->consumeKeys()) return;
+
+      if (buttonLeft.consume()) current->focusPrev();
+      if (buttonRight.consume()) current->focusNext();
+      if (buttonUp.consume()) {}
+      if (buttonDown.consume()) {}
+
+      if (buttonSelect.consume()) {
+        UIComponent* focused = current->getFocusedChild();
+        if (focused && focused->getType() == BUTTON) ((UIButton*)focused)->press();
+      }
+    }
 };

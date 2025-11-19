@@ -19,23 +19,33 @@ inline UIContainer* createHomeScreen() {
 
 	UIContainer *screen = new UIContainer(mainSettings);
 
-	screen->addChild(
-  	new UILabel({{100,10},{10,10}, THEME_BG},
+	UIContainer *head = new UIContainer({{SCREEN_WIDTH,20},{0,0},THEME_ACCENT});
+	head->addChild(
+  	new UILabel({{SCREEN_WIDTH / 2,10},{0,10}, THEME_ACCENT},
   	  []() {
         std::string text = data.getWiFiId();
-  	    return "WiFi: " + (text.size() ? "Desconectado" : text);
+  	    return "WiFi: " + (!text.size() ? "Desconectado" : text);
+  		}
+  	)
+	);
+	head->addChild(
+  	new UILabel({{SCREEN_WIDTH / 2,10},{SCREEN_WIDTH / 2,10}, THEME_ACCENT},
+  	  []() {
+        std::string text = data.getUsername();
+  	    return "Usuario: " + (!text.size() ? "Indefinido" : text);
   		}
   	)
 	);
 
-	screen->addChild(new UIButton({{80, 80}, {40, 140}, THEME_PRIMARY}, "Click Me 1", [](){
-		Serial.println("Button 1 pressed!");
+	screen->addChild(head);
+	screen->addChild(new UIButton({{80, 80}, {40, 140}, THEME_PRIMARY}, "Identificar", [](){
+		 uiManager.setCurrentScreen(1);
 	}));
-	screen->addChild(new UIButton({{80, 80}, {200, 140}, THEME_PRIMARY}, "Click Me 3", [](){
-		Serial.println("Button 3 pressed!");
+	screen->addChild(new UIButton({{80, 80}, {200, 140}, THEME_PRIMARY}, "Usuario", [](){
+		uiManager.setCurrentScreen(2);
 	}));
-	screen->addChild(new UIButton({{80, 80}, {360, 140}, THEME_PRIMARY}, "Wi-Fi\nSettings", [](){
-		uiManager.setCurrentScreen(1);
+	screen->addChild(new UIButton({{80, 80}, {360, 140}, THEME_PRIMARY}, "Wi-Fi", [](){
+		uiManager.setCurrentScreen(2);
 	}));
 
 	return screen;

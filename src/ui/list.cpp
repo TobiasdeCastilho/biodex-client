@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include "../globals/hardware.h"
+
 #include "component.cpp"
 #include "themes.h"
 
@@ -142,5 +144,24 @@ class UIList : public UIComponent {
 			int viewSize = orientation == VERTICAL ? settings.size.height : settings.size.width;
 			int totalSize = lastPos - (orientation == VERTICAL ? settings.position.y : settings.position.x);
 			return totalSize > viewSize ? totalSize - viewSize : 0;
+		}
+
+		bool consumeKeys() override {
+		  switch(orientation) {
+				case(VERTICAL): {
+				  if(buttonDown.consume()) focusNext();
+					if(buttonUp.consume()) focusPrevious();
+					buttonLeft.consume();
+					buttonRight.consume();
+					break;
+				}
+				default: {
+				  if(buttonLeft.consume()) focusNext();
+   			  if(buttonRight.consume()) focusPrevious();
+          buttonDown.consume();
+					buttonUp.consume();
+     			break;
+    		}
+			}
 		}
 };

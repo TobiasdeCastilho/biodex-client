@@ -20,7 +20,6 @@ inline UIContainer* createWiFiSettingsScreen() {
 
 	UIContainer *screen = new UIContainer(mainSettings);
 
-	// Mostra loader do manager enquanto escaneia redes
 	uiManager.toggleLoader(true);
 	int networksAmount = WiFi.scanNetworks();
 	uiManager.toggleLoader(false);
@@ -35,15 +34,12 @@ inline UIContainer* createWiFiSettingsScreen() {
 		btnSettings.color = THEME_PRIMARY;
 
 		UIButton *networkBtn = new UIButton(btnSettings, ssid, [i, ssid](){
-			// Usa teclado do manager com callback
 			uiManager.useKeyboard([i, ssid](bool confirmed, std::string text, int textLength){
 				if(confirmed){
-
 					int maxTries = 20;
 
 					WiFi.begin(ssid.c_str(), text.c_str());
 					while (WiFi.status() != WL_CONNECTED && maxTries-- > 0) delay(500);
-
 					if(WiFi.status() != WL_CONNECTED) return;
 
 					data.setWiFiId(ssid.c_str());

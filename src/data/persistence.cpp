@@ -16,14 +16,15 @@ class Data {
     ~Data() {};
 
     void load() {
+      if (!LittleFS.exists(DATA_PATH)) return;
+
       File file = LittleFS.open(DATA_PATH, "r");
       if (!file) return;
 
-      wifiId = file.read();
-      wifiPassword = file.read();
-
-      username = file.read();
-      userId = file.read();
+      wifiId = file.readStringUntil('\n').c_str();
+      wifiPassword = file.readStringUntil('\n').c_str();
+      username = file.readStringUntil('\n').c_str();
+      userId = file.readStringUntil('\n').c_str();
 
       file.close();
     }
@@ -34,7 +35,12 @@ class Data {
       Serial.printf("New Values: %s\n%s\n%s\n%s",wifiId,wifiPassword,username,userId);
 
       File file = LittleFS.open(DATA_PATH, "w+");
-      file.printf("%s\n%s\n%s\n%s",wifiId,wifiPassword,username,userId);
+      file.printf("%s\n%s\n%s\n%s\n",
+        wifiId.c_str(),
+        wifiPassword.c_str(),
+        username.c_str(),
+        userId.c_str()
+      );
       file.close();
     }
 

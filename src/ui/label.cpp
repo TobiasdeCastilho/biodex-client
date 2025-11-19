@@ -33,7 +33,7 @@ class UILabel : public UIComponent {
 		void render() override {
 			if(getTextCallback != NULL) {
 			  std::string newText = getTextCallback();
-				if(!newText.compare(text)) setText(newText);
+				if(newText.compare(text)) setText(newText);
 			}
 
 			if(!hasChanged) return;
@@ -47,11 +47,11 @@ class UILabel : public UIComponent {
 			);
 
 			tft.setTextColor(THEME_TEXT, settings.color);
-			tft.setTextDatum(MC_DATUM);
+			tft.setTextDatum(ML_DATUM);
 			tft.drawString(
 				text.c_str(),
-				settings.position.x + settings.size.width / 2,
-				settings.position.y + settings.size.height / 2
+				settings.position.x,
+				settings.position.y
 			);
 
 			hasChanged = false;

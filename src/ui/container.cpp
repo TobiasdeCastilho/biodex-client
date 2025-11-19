@@ -8,7 +8,7 @@
 class UIContainer : public UIComponent {
 	private:
 		std::vector<UIComponent*> childrens;
-		int padding = 5;
+		int padding = 0;
 		int focusIndex = -1;
 
 	public:
@@ -78,7 +78,9 @@ class UIContainer : public UIComponent {
 		virtual bool isContainer(){ return true; }
 
 		void render() override{
-			if(hasChanged){
+			if(!visible) return;
+
+		  if(hasChanged){
 				tft.fillRect(settings.position.x, settings.position.y, settings.size.width, settings.size.height, settings.color);
 				hasChanged = false;
 			}
@@ -125,5 +127,11 @@ class UIContainer : public UIComponent {
 			return nullptr;
 		}
 
+		bool consumeKeys() override {
+		  UIComponent* focusedComponent = getFocusedChild();
+			bool keep = !focusedComponent || focusedComponent->consumeKeys();
+			if(!keep) return false;
+			return UIComponent::consumeKeys();
+		}
 		std::vector<UIComponent*> getChildren(){ return childrens; }
 };

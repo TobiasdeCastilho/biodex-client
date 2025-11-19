@@ -31,13 +31,18 @@ typedef enum {
 	LIST
 } UIComponentType;
 
+typedef std::function<bool()> UIComponentOnPress;
+
 class UIComponent {
 	protected:
 		bool hasChanged = true;
 		bool focusable = false;
 		bool focused = false;
+		bool visible = true;
 		UIComponentSettings settings;
 		UIComponentType type;
+
+		UIComponentOnPress onPress = nullptr;
 
 	public:
 		UIComponent(UIComponentSettings componentSettings) {
@@ -54,7 +59,15 @@ class UIComponent {
 			type = COMPONENT;
 		}
 
+		void setOnPress(UIComponentOnPress onPressCallback) {
+			onPress = onPressCallback;
+		}
+
 		virtual void render() {}
+		virtual bool consumeKeys() {
+			return onPress ? onPress() : true;
+		}
+
 		virtual bool isContainer() { return false; }
 
 		virtual void markChanged() { hasChanged = true; }
@@ -86,4 +99,11 @@ class UIComponent {
 			settings.size = sz;
 			markChanged();
 		}
+
+		void setVisible(bool v) {
+			visible = v;
+			markChanged();
+		}
+
+		bool isVisible() const { return visible; }
 };

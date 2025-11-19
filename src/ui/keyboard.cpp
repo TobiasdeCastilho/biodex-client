@@ -88,8 +88,8 @@ public:
 		UIContainer::render();
 	}
 
-	void consumeKeys() {
-		if (!visible) return;
+	bool consumeKeys() override {
+		if (!visible) return true;
 
 		int lastX = keyX;
 		int lastY = keyY;
@@ -128,6 +128,8 @@ public:
 
 		if (buttonSelect.consume())
 			onKeyPress(keyX, keyY);
+
+		return true;
 	}
 
 	void use(KeyboardUserCallback cb) {
